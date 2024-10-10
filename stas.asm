@@ -372,14 +372,15 @@ end_word num_to_str, "num>str", IMMEDIATE | COMPILE
 def_word quote
    mov esi, [input_buffer_pos]
    inc esi
+
    mov edi, [free]
+
    cmp DWORD [mode], COMPILE
    jne .copy_char
-   mov edx, [here]
-   mov BYTE [edx], 68h
-   mov DWORD [edx + 1], edi
-   add edx, 5
-   mov [here], edx
+
+   mov edi, [here]
+   push edi
+   add edi, 5
 .copy_char:
    cmp esi, [input_buffer_end]
    jl .skip_read
@@ -424,13 +425,24 @@ def_word quote
 .end_quote:
    lea eax, [esi + 1]
    mov [input_buffer_pos], eax
-   mov [edi], BYTE 0
-   lea eax, [edi + 1]
+   mov BYTE [edi], 0
+
    cmp DWORD [mode], IMMEDIATE
-   jne .quote_skip_push
+   je .finish_immediate
+
+   inc edi
+   mov [here], edi
+   pop edx
+   mov BYTE [edx], 0xE8
+   sub edi, edx
+   sub edi, 5
+   mov DWORD [edx + 1], edi
+   jmp .end_if
+.finish_immediate:
    push DWORD [free]
-.quote_skip_push:
+   lea eax, [edi + 1]
    mov [free], eax
+.end_if:
    eat_spaces_code
 .quote_done:
 end_word quote, "quote", IMMEDIATE | COMPILE
@@ -803,7 +815,7 @@ phdr1:
    dd 1
    dd 0
    dd ELF_VA
-   dd 0
+   dd ELF_VA
 prog_bytes1:
    dd 0
 prog_bytes2:
@@ -822,6 +834,8 @@ def_word make_elf
    find_code
    pop esi
    mov eax, [esi + T_CODE_LEN]
+
+   add eax, elf_size
    mov [prog_bytes1], eax
    mov [prog_bytes2], eax
 
