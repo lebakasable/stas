@@ -1,0 +1,13 @@
+: hello
+   "Hello, World!\n" print
+;
+
+: hello4
+   hello
+   hello
+   hello
+   hello
+   exit
+;
+
+elf hello4

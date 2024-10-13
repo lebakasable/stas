@@ -647,7 +647,28 @@ start_word print_stack
    print_stack_code
 end_word print_stack, "print-stack", IMMEDIATE | COMPILE
 
-%macro dump_word_code 0
+%macro inspect_code 0
+   eat_spaces_code
+   get_token_code
+   find_code
+   pop esi
+   lea eax, [esi + T_NAME]
+   push esi
+   push eax
+   print_code 
+   print_str ": "
+   pop esi
+   mov eax, [esi + T_CODE_LEN]
+   push esi
+   push eax
+   print_num_code
+   print_str " bytes "
+   pop esi
+   mov eax, [esi + T_FLAGS]
+   push esi
+   push eax
+   print_mode_code
+   print_str `\n`
    pop esi
    mov ecx, [esi + T_CODE_LEN]
    mov eax, [esi + T_CODE_OFFSET]
@@ -670,46 +691,11 @@ end_word print_stack, "print-stack", IMMEDIATE | COMPILE
 %%done:
    print_str `\n`
    pop ebx
-   mov DWORD [var_radix], ebx
-%endmacro
-start_word dump_word
-   dump_word_code
-end_word dump_word, "dump-word", IMMEDIATE
-
-%macro inspect_code 0
-   pop esi
-   lea eax, [esi + T_NAME]
-   push esi
-   push eax
-   print_code 
-   print_str ": "
-   pop esi
-   mov eax, [esi + T_CODE_LEN]
-   push esi
-   push eax
-   print_num_code
-   print_str " bytes "
-   pop esi
-   mov eax, [esi + T_FLAGS]
-   push eax
-   print_mode_code
-   print_str `\n`
+   mov dword [var_radix], ebx
 %endmacro
 start_word inspect
    inspect_code
 end_word inspect, "inspect", IMMEDIATE
-
-start_word inspect_all
-   mov eax, [last]
-.inspect_loop:
-   mov ebx, [eax]
-   push ebx
-   push eax
-   inspect_code
-   pop eax
-   cmp eax, 0
-   jne .inspect_loop
-end_word inspect_all, "inspect-all", IMMEDIATE
 
 start_word words
    mov esi, [last]
@@ -828,7 +814,7 @@ phdr_size equ $ - phdr1
 elf_size equ $ - elf_header
 
 section .text
-start_word make_elf
+start_word elf
    eat_spaces_code
    get_token_code
    find_code
@@ -860,7 +846,7 @@ start_word make_elf
    print_str "Wrote to '"
    print_code
    print_str `'\n`
-end_word make_elf, "make-elf", IMMEDIATE
+end_word elf, "elf", IMMEDIATE
 
 global _start
 _start:
