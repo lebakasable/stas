@@ -46,7 +46,7 @@ section .text
    popa
 %endmacro
 
-%macro def_word 1
+%macro start_word 1
 %1:
 %endmacro
 
@@ -86,7 +86,7 @@ section .text
    mov eax, SYS_EXIT
    int 80h
 %endmacro
-def_word exit
+start_word exit
    exit_code
 end_word exit, "exit", IMMEDIATE | COMPILE
 
@@ -101,7 +101,7 @@ end_word exit, "exit", IMMEDIATE | COMPILE
 %%strlen_done:
    push ecx
 %endmacro
-def_word strlen
+start_word strlen
    strlen_code
 end_word strlen, "strlen", IMMEDIATE | COMPILE
 
@@ -120,7 +120,7 @@ end_word strlen, "strlen", IMMEDIATE | COMPILE
    strlen_code
    sized_print_code
 %endmacro
-def_word print
+start_word print
    print_code
 end_word print, "print", IMMEDIATE | COMPILE
 
@@ -134,7 +134,7 @@ end_word print, "print", IMMEDIATE | COMPILE
    rep movsb
    mov [here], edi
 %endmacro
-def_word inline
+start_word inline
    inline_code
 end_word inline, "inline", IMMEDIATE
 
@@ -143,7 +143,7 @@ end_word inline, "inline", IMMEDIATE
    mov eax, [ebp + T_FLAGS]
    push eax
 %endmacro
-def_word get_flags
+start_word get_flags
    get_flags_code
 end_word get_flags, "get-flags", IMMEDIATE | COMPILE
 
@@ -152,7 +152,7 @@ end_word get_flags, "get-flags", IMMEDIATE | COMPILE
    and eax, RUNCOMP
    push eax
 %endmacro
-def_word is_runcomp
+start_word is_runcomp
    is_runcomp_code
 end_word is_runcomp, "runcomp?", IMMEDIATE | COMPILE
 
@@ -186,7 +186,7 @@ end_word is_runcomp, "runcomp?", IMMEDIATE | COMPILE
    push edx
 %%done:
 %endmacro
-def_word find
+start_word find
    find_code
 end_word find, "find", IMMEDIATE
 
@@ -206,7 +206,7 @@ end_word find, "find", IMMEDIATE
    mov DWORD [input_buffer_pos], input_buffer
    popa
 %endmacro
-def_word get_input
+start_word get_input
    get_input_code
 end_word get_input, "get-input", IMMEDIATE | COMPILE
 
@@ -232,7 +232,7 @@ end_word get_input, "get-input", IMMEDIATE | COMPILE
 %%done:
    mov [input_buffer_pos], esi
 %endmacro
-def_word eat_spaces
+start_word eat_spaces
    eat_spaces_code
 end_word eat_spaces, "eat-spaces", IMMEDIATE | COMPILE
 
@@ -265,7 +265,7 @@ end_word eat_spaces, "eat-spaces", IMMEDIATE | COMPILE
    push DWORD token_buffer
 %%done:
 %endmacro
-def_word get_token
+start_word get_token
    get_token_code
 end_word get_token, "get-token", IMMEDIATE
 
@@ -280,11 +280,11 @@ end_word get_token, "get-token", IMMEDIATE
    cmp al, 0
    jnz %%copy_char
 %endmacro
-def_word copy_str
+start_word copy_str
    copy_str_code
 end_word copy_str, "copy-str", IMMEDIATE | COMPILE
 
-def_word colon
+start_word colon
    mov DWORD [mode], COMPILE
    eat_spaces_code
    get_token_code
@@ -294,7 +294,7 @@ def_word colon
    push eax
 end_word colon, ":", IMMEDIATE
 
-def_word return
+start_word return
    return_code
 end_word return, "return", IMMEDIATE
 
@@ -332,7 +332,7 @@ end_word return, "return", IMMEDIATE
    mov [here], eax
    mov DWORD [mode], IMMEDIATE
 %endmacro
-def_word semicolon
+start_word semicolon
    semicolon_code
 end_word semicolon, ";", COMPILE | RUNCOMP
 
@@ -365,11 +365,11 @@ end_word semicolon, ";", COMPILE | RUNCOMP
    jl %%store_next
    push eax
 %endmacro
-def_word num_to_str
+start_word num_to_str
    num_to_str_code
 end_word num_to_str, "num>str", IMMEDIATE | COMPILE
 
-def_word quote
+start_word quote
    mov esi, [input_buffer_pos]
    inc esi
 
@@ -492,7 +492,7 @@ end_word quote, "quote", IMMEDIATE | COMPILE
    push 1
 %%done:
 %endmacro
-def_word str_to_num
+start_word str_to_num
    str_to_num_code
 end_word str_to_num, "str>num", IMMEDIATE | COMPILE
 
@@ -500,23 +500,23 @@ end_word str_to_num, "str>num", IMMEDIATE | COMPILE
    pop eax
    mov [var_radix], eax
 %endmacro
-def_word radix
+start_word radix
    RADIX_CODE
 end_word radix, "radix", IMMEDIATE | COMPILE
-def_word hex
+start_word hex
    mov DWORD [var_radix], 16
 end_word hex, "hex", IMMEDIATE | COMPILE
-def_word oct
+start_word oct
    mov DWORD [var_radix], 8 
 end_word oct, "oct", IMMEDIATE | COMPILE
-def_word bin
+start_word bin
    mov DWORD [var_radix], 2
 end_word bin, "bin", IMMEDIATE | COMPILE
-def_word dec
+start_word dec
    mov DWORD [var_radix], 10
 end_word dec, "dec", IMMEDIATE | COMPILE
 
-def_word number
+start_word number
    get_token_code
    str_to_num_code
    pop eax
@@ -552,7 +552,7 @@ end_word number, "number", IMMEDIATE | COMPILE
    push ebx
    sized_print_code
 %endmacro
-def_word print_num
+start_word print_num
    print_num_code
 end_word print_num, "print-num", IMMEDIATE | COMPILE
 
@@ -585,11 +585,11 @@ end_word print_num, "print-num", IMMEDIATE | COMPILE
    push esi
    print_code
 %endmacro
-def_word print_fmt
+start_word print_fmt
    print_fmt_code
 end_word print_fmt, "print-fmt", IMMEDIATE | COMPILE
 
-def_word print_line
+start_word print_line
    print_fmt_code
    mov eax, [free]
    mov BYTE [eax], `\n`
@@ -622,7 +622,7 @@ end_word print_line, "print-line", IMMEDIATE | COMPILE
    pop eax
 %%done:
 %endmacro
-def_word print_mode
+start_word print_mode
    print_mode_code
 end_word print_mode, "print-mode", IMMEDIATE | COMPILE
 
@@ -643,7 +643,7 @@ end_word print_mode, "print-mode", IMMEDIATE | COMPILE
 %%done:
    print_str `\n`
 %endmacro
-def_word print_stack
+start_word print_stack
    print_stack_code
 end_word print_stack, "print-stack", IMMEDIATE | COMPILE
 
@@ -672,7 +672,7 @@ end_word print_stack, "print-stack", IMMEDIATE | COMPILE
    pop ebx
    mov DWORD [var_radix], ebx
 %endmacro
-def_word dump_word
+start_word dump_word
    dump_word_code
 end_word dump_word, "dump-word", IMMEDIATE
 
@@ -695,11 +695,11 @@ end_word dump_word, "dump-word", IMMEDIATE
    print_mode_code
    print_str `\n`
 %endmacro
-def_word inspect
+start_word inspect
    inspect_code
 end_word inspect, "inspect", IMMEDIATE
 
-def_word inspect_all
+start_word inspect_all
    mov eax, [last]
 .inspect_loop:
    mov ebx, [eax]
@@ -711,7 +711,7 @@ def_word inspect_all
    jne .inspect_loop
 end_word inspect_all, "inspect-all", IMMEDIATE
 
-def_word words
+start_word words
    mov esi, [last]
 .print_loop:
    lea eax, [esi + T_NAME]
@@ -726,28 +726,28 @@ def_word words
    print_str `\n`
 end_word words, "words", IMMEDIATE
 
-def_word add
+start_word add
    pop eax
    pop ebx
    add eax, ebx
    push eax
 end_word add, "+", IMMEDIATE | COMPILE
 
-def_word sub
+start_word sub
    pop ebx
    pop eax
    sub eax, ebx
    push eax
 end_word sub, "-", IMMEDIATE | COMPILE
 
-def_word mul
+start_word mul
    pop eax
    pop ebx
    imul eax, ebx
    push eax
 end_word mul, "*", IMMEDIATE | COMPILE
 
-def_word div
+start_word div
    mov edx, 0
    pop ebx
    pop eax
@@ -756,7 +756,7 @@ def_word div
    push eax
 end_word div, "/", IMMEDIATE | COMPILE
 
-def_word var
+start_word var
    mov DWORD [mode], COMPILE
    eat_spaces_code
    get_token_code
@@ -774,13 +774,13 @@ def_word var
    semicolon_code
 end_word var, "var", IMMEDIATE | COMPILE
 
-def_word set
+start_word set
    pop edi
    pop eax
    mov [edi], eax
 end_word set, "set", IMMEDIATE | COMPILE
 
-def_word get
+start_word get
    pop esi
    mov eax, [esi]
    push eax
@@ -828,7 +828,7 @@ phdr_size equ $ - phdr1
 elf_size equ $ - elf_header
 
 section .text
-def_word make_elf
+start_word make_elf
    eat_spaces_code
    get_token_code
    find_code
