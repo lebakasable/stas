@@ -742,6 +742,16 @@ start_word div
    push eax
 end_word div, "/", IMMEDIATE | COMPILE
 
+start_word pop
+   pop eax
+end_word pop, "pop", IMMEDIATE | COMPILE
+
+start_word dup
+   pop eax
+   push eax
+   push eax
+end_word dup, "dup", IMMEDIATE | COMPILE
+
 start_word var
    mov DWORD [mode], COMPILE
    eat_spaces_code
