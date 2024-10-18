@@ -210,6 +210,29 @@ start_word get_input
    get_input_code
 end_word get_input, "get-input", IMMEDIATE | COMPILE
 
+start_word comment
+.reset:
+   mov esi, [input_buffer_pos]
+   cmp DWORD [input_eof], 1
+   je .done
+   mov ebx, [input_buffer_end]
+.check:
+   cmp esi, ebx
+   jl .continue
+   get_input_code
+   jmp .reset
+.continue:
+   mov al, [esi]
+   cmp al, 0
+   je .done
+   cmp al, 0x0A
+   je .done
+   inc esi
+   jmp .check
+.done:
+   mov [input_buffer_pos], esi
+end_word comment, "\", IMMEDIATE | COMPILE | RUNCOMP
+
 %macro eat_spaces_code 0
 %%reset:
    mov esi, [input_buffer_pos]
@@ -751,6 +774,35 @@ start_word dup
    push eax
    push eax
 end_word dup, "dup", IMMEDIATE | COMPILE
+
+start_word if
+   pop eax
+   test eax, eax
+   jnz .continue
+   eat_spaces_code
+   get_token_code
+   pop eax
+.continue:
+end_word if, "if?", IMMEDIATE
+
+start_word if_compiled
+   eat_spaces_code
+   get_token_code
+   find_code
+   pop esi
+   mov eax, [esi + T_CODE_LEN]
+   push esi
+   mov edx, [here]
+   mov BYTE [edx], 0x58
+   mov BYTE [edx + 1], 0x85
+   mov BYTE [edx + 2], 0xc0
+   mov BYTE [edx + 3], 0x0f
+   mov BYTE [edx + 4], 0x85
+   mov DWORD [edx + 5], eax
+   add edx, 9
+   mov [here], edx
+   inline_code
+end_word if_compiled, "if?", COMPILE | RUNCOMP
 
 start_word var
    mov DWORD [mode], COMPILE

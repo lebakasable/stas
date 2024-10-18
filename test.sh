@@ -54,5 +54,18 @@ try 'var x
      : x? x get "x=$" print-line ;       
      x?'                           'x=4'
 
+try ': t "true" print ;
+     "0=" print 0 if? t
+     ", 1=" print 1 if? t
+     "\n" print'                   '0=, 1=true'
+
+try ': hi "Hi!" print ;
+     : maybe-hi if? hi ;
+     inspect hi
+     inspect maybe-hi
+     0 maybe-hi
+     1 maybe-hi
+     "\n" print'                   'Hi!'
+
 echo
 echo Passed!
