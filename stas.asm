@@ -804,6 +804,40 @@ start_word if_compiled
    inline_code
 end_word if_compiled, "if?", COMPILE | RUNCOMP
 
+start_word loop_compiled
+%assign LEN_BEFORE 10
+%assign LEN_AFTER 5
+   eat_spaces_code
+   get_token_code
+   find_code
+   pop esi
+   mov eax, [esi + T_CODE_LEN]
+   add eax, LEN_AFTER
+
+   push eax
+   push esi
+
+   mov edx, [here]
+   mov BYTE [edx], 0x58
+   mov BYTE [edx+1], 0x50
+   mov BYTE [edx+2], 0x85
+   mov BYTE [edx+3], 0xC0
+   mov BYTE [edx+4], 0x0F
+   mov BYTE [edx+5], 0x84
+   mov DWORD [edx+6], eax
+   add edx, LEN_BEFORE
+   mov [here], edx
+   inline_code
+   pop eax
+   add eax, LEN_BEFORE
+   neg eax
+   mov edx, [here]
+   mov BYTE [edx], 0xE9
+   mov DWORD [edx + 1], eax
+   add edx, LEN_AFTER
+   mov [here], edx
+end_word loop_compiled, "loop?", COMPILE | RUNCOMP
+
 start_word var
    mov DWORD [mode], COMPILE
    eat_spaces_code

@@ -1,0 +1,14 @@
+: foo
+   dup
+   print-num
+   " " print
+   1 -
+;
+
+: loop
+   loop? foo
+   "\n" print
+;
+
+5 loop
+10 loop
