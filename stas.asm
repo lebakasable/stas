@@ -797,7 +797,7 @@ start_word if_compiled
    mov BYTE [edx + 1], 0x85
    mov BYTE [edx + 2], 0xc0
    mov BYTE [edx + 3], 0x0f
-   mov BYTE [edx + 4], 0x85
+   mov BYTE [edx + 4], 0x84
    mov DWORD [edx + 5], eax
    add edx, 9
    mov [here], edx
