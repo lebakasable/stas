@@ -765,6 +765,35 @@ start_word div
    push eax
 end_word div, "/", IMMEDIATE | COMPILE
 
+start_word or
+   pop ebx
+   pop eax
+   or eax, ebx
+   push eax
+end_word or, "or", IMMEDIATE | COMPILE
+
+start_word equal
+   pop ebx
+   pop eax
+   cmp eax, ebx
+   mov eax, 1
+   je .done
+   mov eax, 0
+.done:
+   push eax
+end_word equal, "=", IMMEDIATE | COMPILE
+
+start_word less
+   pop ebx
+   pop eax
+   cmp eax, ebx
+   mov eax, 1
+   jl .done
+   mov eax, 0
+.done:
+   push eax
+end_word less, "<", IMMEDIATE | COMPILE
+
 start_word pop
    pop eax
 end_word pop, "pop", IMMEDIATE | COMPILE
@@ -774,6 +803,21 @@ start_word dup
    push eax
    push eax
 end_word dup, "dup", IMMEDIATE | COMPILE
+
+start_word over
+   pop eax
+   pop ebx
+   push ebx
+   push eax
+   push ebx
+end_word over, "over", IMMEDIATE | COMPILE
+
+start_word swap
+   pop eax
+   pop ebx
+   push eax
+   push ebx
+end_word swap, "swap", IMMEDIATE | COMPILE
 
 start_word if
    pop eax
