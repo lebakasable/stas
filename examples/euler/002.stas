@@ -1,0 +1,17 @@
+var acc
+
+: if over acc get + acc set ;
+
+: loop pop
+   over 2 / pop 0 = if? if
+   swap over + over 4000000 <
+;
+
+: solve
+   1 2 1 loop? loop
+   pop pop
+   acc get "$\n" print-fmt
+;
+
+solve
+
