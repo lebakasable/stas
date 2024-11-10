@@ -9,7 +9,7 @@ var acc
 
 : solve
    1 2 1 loop? loop
-   pop pop
+   pop pop pop
    acc get "$\n" print-fmt
 ;
 
