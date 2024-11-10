@@ -297,9 +297,9 @@ end_word get_token, "get-token", IMMEDIATE
    pop esi
    mov ecx, 0
 %%copy_char:
-   mov  al, [esi + ecx]
-   mov  [edi + ecx], al
-   inc  ecx
+   mov al, [esi + ecx]
+   mov [edi + ecx], al
+   inc ecx
    cmp al, 0
    jnz %%copy_char
 %endmacro
@@ -530,7 +530,7 @@ start_word hex
    mov DWORD [var_radix], 16
 end_word hex, "hex", IMMEDIATE | COMPILE
 start_word oct
-   mov DWORD [var_radix], 8 
+   mov DWORD [var_radix], 8
 end_word oct, "oct", IMMEDIATE | COMPILE
 start_word bin
    mov DWORD [var_radix], 2
@@ -678,7 +678,7 @@ end_word print_stack, "print-stack", IMMEDIATE | COMPILE
    lea eax, [esi + T_NAME]
    push esi
    push eax
-   print_code 
+   print_code
    print_str ": "
    pop esi
    mov eax, [esi + T_CODE_LEN]
@@ -1022,3 +1022,4 @@ get_next_token:
    print_mode_code
    print_str `mode\n`
    jmp get_next_token
+
