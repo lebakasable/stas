@@ -42,7 +42,7 @@ section .text
    mov edx, mystr_len
    mov ecx, %%mystr
    mov eax, SYS_WRITE
-   int 80h
+   int 0x80
    popa
 %endmacro
 
@@ -84,7 +84,7 @@ section .text
 %macro exit_code 0
    pop ebx
    mov eax, SYS_EXIT
-   int 80h
+   int 0x80
 %endmacro
 start_word exit
    exit_code
@@ -110,7 +110,7 @@ end_word strlen, "strlen", IMMEDIATE | COMPILE
    pop ecx
    mov ebx, STDOUT
    mov eax, SYS_WRITE
-   int 80h
+   int 0x80
 %endmacro
 
 %macro print_code 0
@@ -196,7 +196,7 @@ end_word find, "find", IMMEDIATE
    mov ecx, input_buffer
    mov edx, INPUT_SIZE
    mov eax, SYS_READ
-   int 80h
+   int 0x80
    cmp eax, 0
    jg %%normal
    mov DWORD [input_eof], 1
@@ -248,7 +248,7 @@ end_word comment, "\", IMMEDIATE | COMPILE | RUNCOMP
    mov al, [esi]
    cmp al, 0
    je %%done
-   cmp al, 20h
+   cmp al, 0x20
    jg %%done
    inc esi
    jmp %%check
@@ -271,7 +271,7 @@ end_word eat_spaces, "eat-spaces", IMMEDIATE | COMPILE
    mov esi, [input_buffer_pos]
 %%skip_read:
    mov al, [esi]
-   cmp al, 20h
+   cmp al, 0x20
    jle %%end_of_token
    mov BYTE [edi], al
    inc esi
@@ -551,7 +551,7 @@ start_word number
 .compile:
    pop eax
    mov edx, [here]
-   mov BYTE [edx], 68h
+   mov BYTE [edx], 0x68
    mov DWORD [edx + 1], eax
    add edx, 5
    mov [here], edx
@@ -847,7 +847,7 @@ start_word var
    mov eax, [free]
    mov edx, [here]
    push edx
-   mov BYTE [edx], 68h
+   mov BYTE [edx], 0x68
    mov DWORD [edx + 1], eax
    add edx, 5
    mov [here], edx
@@ -869,7 +869,7 @@ start_word get
 end_word get, "get", IMMEDIATE | COMPILE
 
 section .data
-%assign ELF_VA 08048000h
+%assign ELF_VA 0x08048000
 
 elf_header:
    db 7fh, "ELF"
@@ -924,21 +924,21 @@ start_word elf
    mov ecx, 0100o | 0001o | 1000o
    mov edx, 755o
    mov eax, SYS_OPEN
-   int 80h
+   int 0x80
    push ebx
    mov edx, elf_size
    mov ecx, elf_header
    mov ebx, eax
    mov eax, SYS_WRITE
-   int 80h
+   int 0x80
    mov edx, [esi + T_CODE_LEN]
    mov eax, [esi + T_CODE_OFFSET]
    mov ecx, esi
    sub ecx, eax
    mov eax, SYS_WRITE
-   int 80h
+   int 0x80
    mov eax, SYS_CLOSE
-   int 80h
+   int 0x80
    print_str "Wrote to '"
    print_code
    print_str `'\n`
