@@ -783,6 +783,17 @@ start_word equal
    push eax
 end_word equal, "=", IMMEDIATE | COMPILE
 
+start_word not_equal
+   pop ebx
+   pop eax
+   cmp eax, ebx
+   mov eax, 1
+   jne .done
+   mov eax, 0
+.done:
+   push eax
+end_word not_equal, "!=", IMMEDIATE | COMPILE
+
 start_word less
    pop ebx
    pop eax
@@ -793,6 +804,17 @@ start_word less
 .done:
    push eax
 end_word less, "<", IMMEDIATE | COMPILE
+
+start_word greater
+   pop ebx
+   pop eax
+   cmp eax, ebx
+   mov eax, 1
+   jg .done
+   mov eax, 0
+.done:
+   push eax
+end_word greater, ">", IMMEDIATE | COMPILE
 
 start_word pop
    pop eax

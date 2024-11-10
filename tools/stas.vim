@@ -16,7 +16,7 @@ setlocal iskeyword=!,@,33-35,%,$,38-64,A-Z,91-96,a-z,123-126,128-255
 
 syn keyword stasOperator + - * /
 syn keyword stasOperator or
-syn keyword stasOperator = <
+syn keyword stasOperator = != < >
 syn keyword stasStack pop dup over swap
 syn keyword stasMemory set get
 
