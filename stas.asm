@@ -948,6 +948,10 @@ global _start
 _start:
    cld
 
+   mov eax, [esp]
+   cmp eax, 1
+   jne .print_usage
+
    mov DWORD [mode], IMMEDIATE
    mov DWORD [input_file], STDIN
    mov DWORD [here], compile_area
@@ -963,6 +967,10 @@ _start:
    mov DWORD [input_eof], 0
 
    mov DWORD [var_radix], 10
+   jmp get_next_token
+.print_usage:
+   print_str `Usage: stas\n`
+   exit_code
 
 get_next_token:
    mov eax, [input_eof]
