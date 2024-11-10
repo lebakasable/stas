@@ -1,0 +1,18 @@
+: if swap over + swap ;
+
+: loop pop
+   dup  3 / pop 0 =
+   over 5 / pop 0 =
+   or
+   if? if
+   1 + dup 1000 <
+;
+
+: solve
+   0 3 1 loop? loop
+   pop pop
+   "$\n" print-fmt
+;
+
+solve
+
