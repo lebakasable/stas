@@ -29,6 +29,7 @@ input_buffer: resb INPUT_SIZE
 input_buffer_end: resd 1
 input_buffer_pos: resd 1
 input_eof: resd 1
+input_pos: resd 1
 
 return_addr: resd 1
 
@@ -156,40 +157,6 @@ start_word is_runcomp
    is_runcomp_code
 end_word is_runcomp, "runcomp?", IMMEDIATE | COMPILE
 
-%macro find_code 0
-   pop ebp
-   mov edx, [last]
-%%test_word:
-   cmp edx, 0
-   je %%not_found
-   mov eax, [mode]
-   and eax, [edx + T_FLAGS]
-   cmp eax, 0
-   jz %%try_next_word
-   lea ebx, [edx + T_NAME]
-   mov ecx, 0
-%%compare_names_loop:
-   mov al, [ebp + ecx]
-   cmp al, [ebx + ecx]
-   jne %%try_next_word
-   cmp al, 0
-   je %%found
-   inc ecx
-   jmp %%compare_names_loop
-%%try_next_word:
-   mov edx, [edx]
-   jmp %%test_word
-%%not_found:
-   push 0
-   jmp %%done
-%%found:
-   push edx
-%%done:
-%endmacro
-start_word find
-   find_code
-end_word find, "find", IMMEDIATE
-
 %macro get_input_code 0
    pusha
    mov ebx, [input_file]
@@ -216,6 +183,7 @@ start_word comment
    cmp DWORD [input_eof], 1
    je .done
    mov ebx, [input_buffer_end]
+   mov ecx, [input_pos]
 .check:
    cmp esi, ebx
    jl .continue
@@ -228,9 +196,11 @@ start_word comment
    cmp al, 0x0A
    je .done
    inc esi
+   inc ecx
    jmp .check
 .done:
    mov [input_buffer_pos], esi
+   mov [input_pos], ecx
 end_word comment, "\", IMMEDIATE | COMPILE | RUNCOMP
 
 %macro eat_spaces_code 0
@@ -239,6 +209,7 @@ end_word comment, "\", IMMEDIATE | COMPILE | RUNCOMP
    cmp DWORD [input_eof], 1
    je %%done
    mov ebx, [input_buffer_end]
+   mov ecx, [input_pos]
 %%check:
    cmp esi, ebx
    jl %%continue
@@ -251,9 +222,11 @@ end_word comment, "\", IMMEDIATE | COMPILE | RUNCOMP
    cmp al, 0x20
    jg %%done
    inc esi
+   inc ecx
    jmp %%check
 %%done:
    mov [input_buffer_pos], esi
+   mov [input_pos], ecx
 %endmacro
 start_word eat_spaces
    eat_spaces_code
@@ -262,6 +235,7 @@ end_word eat_spaces, "eat-spaces", IMMEDIATE | COMPILE
 %macro get_token_code 0
    mov esi, [input_buffer_pos]
    mov edi, token_buffer
+   mov ecx, [input_pos]
 %%get_char:
    cmp esi, [input_buffer_end]
    jl %%skip_read
@@ -276,6 +250,7 @@ end_word eat_spaces, "eat-spaces", IMMEDIATE | COMPILE
    mov BYTE [edi], al
    inc esi
    inc edi
+   inc ecx
    jmp %%get_char
 %%end_of_token:
    cmp edi, token_buffer
@@ -285,6 +260,7 @@ end_word eat_spaces, "eat-spaces", IMMEDIATE | COMPILE
 %%return:
    mov [input_buffer_pos], esi
    mov BYTE [edi], 0
+   mov [input_pos], ecx
    push DWORD token_buffer
 %%done:
 %endmacro
@@ -392,84 +368,6 @@ start_word num_to_str
    num_to_str_code
 end_word num_to_str, "num>str", IMMEDIATE | COMPILE
 
-start_word quote
-   mov esi, [input_buffer_pos]
-   inc esi
-
-   mov edi, [free]
-
-   cmp DWORD [mode], COMPILE
-   jne .copy_char
-
-   mov edi, [here]
-   push edi
-   add edi, 5
-.copy_char:
-   cmp esi, [input_buffer_end]
-   jl .skip_read
-   get_input_code
-   cmp DWORD [input_eof], 1
-   je .quote_done
-   mov esi, [input_buffer_pos]
-.skip_read:
-   mov al, [esi]
-   cmp al, '"'
-   je .end_quote
-   cmp al, '\'
-   je .insert_esc
-   mov [edi], al
-   inc esi
-   inc edi
-   jmp .copy_char
-.insert_esc:
-   inc esi
-   mov al, [esi]
-   cmp al, '\'
-   jne .esc2
-   mov BYTE [edi], '\'
-   inc esi
-   inc edi
-   jmp .copy_char
-.esc2:
-   cmp al, '$'
-   jne .esc3
-   mov BYTE [edi], '$'
-   inc esi
-   inc edi
-   jmp .copy_char
-.esc3:
-   cmp al, 'n'
-   jne .esc4
-   mov BYTE [edi], `\n`
-   inc esi
-   inc edi
-   jmp .copy_char
-.esc4:
-.end_quote:
-   lea eax, [esi + 1]
-   mov [input_buffer_pos], eax
-   mov BYTE [edi], 0
-
-   cmp DWORD [mode], IMMEDIATE
-   je .finish_immediate
-
-   inc edi
-   mov [here], edi
-   pop edx
-   mov BYTE [edx], 0xE8
-   sub edi, edx
-   sub edi, 5
-   mov DWORD [edx + 1], edi
-   jmp .end_if
-.finish_immediate:
-   push DWORD [free]
-   lea eax, [edi + 1]
-   mov [free], eax
-.end_if:
-   eat_spaces_code
-.quote_done:
-end_word quote, "quote", IMMEDIATE | COMPILE
-
 %macro str_to_num_code 0
    pop ebp
    mov eax, 0
@@ -519,6 +417,93 @@ start_word str_to_num
    str_to_num_code
 end_word str_to_num, "str>num", IMMEDIATE | COMPILE
 
+start_word quote
+   mov esi, [input_buffer_pos]
+   inc esi
+   mov ecx, [input_pos]
+   inc ecx
+
+   mov edi, [free]
+
+   cmp DWORD [mode], COMPILE
+   jne .copy_char
+
+   mov edi, [here]
+   push edi
+   add edi, 5
+.copy_char:
+   cmp esi, [input_buffer_end]
+   jl .skip_read
+   get_input_code
+   cmp DWORD [input_eof], 1
+   je .quote_done
+   mov esi, [input_buffer_pos]
+.skip_read:
+   mov al, [esi]
+   cmp al, '"'
+   je .end_quote
+   cmp al, '\'
+   je .insert_esc
+   mov [edi], al
+   inc esi
+   inc edi
+   inc ecx
+   jmp .copy_char
+.insert_esc:
+   inc esi
+   inc ecx
+   mov al, [esi]
+   cmp al, '\'
+   jne .esc2
+   mov BYTE [edi], '\'
+   inc esi
+   inc edi
+   inc ecx
+   jmp .copy_char
+.esc2:
+   cmp al, '$'
+   jne .esc3
+   mov BYTE [edi], '$'
+   inc esi
+   inc edi
+   inc ecx
+   jmp .copy_char
+.esc3:
+   cmp al, 'n'
+   jne .esc4
+   mov BYTE [edi], `\n`
+   inc esi
+   inc edi
+   inc ecx
+   jmp .copy_char
+.esc4:
+.end_quote:
+   lea eax, [esi + 1]
+   mov [input_buffer_pos], eax
+   mov BYTE [edi], 0
+   inc ecx
+   mov [input_pos], ecx
+
+   cmp DWORD [mode], IMMEDIATE
+   je .finish_immediate
+
+   inc edi
+   mov [here], edi
+   pop edx
+   mov BYTE [edx], 0xE8
+   sub edi, edx
+   sub edi, 5
+   mov DWORD [edx + 1], edi
+   jmp .end_if
+.finish_immediate:
+   push DWORD [free]
+   lea eax, [edi + 1]
+   mov [free], eax
+.end_if:
+   eat_spaces_code
+.quote_done:
+end_word quote, "quote", IMMEDIATE | COMPILE
+
 %macro RADIX_CODE 0
    pop eax
    mov [var_radix], eax
@@ -538,32 +523,6 @@ end_word bin, "bin", IMMEDIATE | COMPILE
 start_word dec
    mov DWORD [var_radix], 10
 end_word dec, "dec", IMMEDIATE | COMPILE
-
-start_word number
-   get_token_code
-   str_to_num_code
-   pop eax
-   cmp eax, 0
-   je .invalid
-   cmp DWORD [mode], COMPILE
-   je .compile
-   jmp .done
-.compile:
-   pop eax
-   mov edx, [here]
-   mov BYTE [edx], 0x68
-   mov DWORD [edx + 1], eax
-   add edx, 5
-   mov [here], edx
-   jmp .done
-.invalid:
-   print_str "Error parsing '"
-   push token_buffer
-   call_word print
-   print_str `' as a number\n`
-   exit_code
-.done:
-end_word number, "number", IMMEDIATE | COMPILE
 
 %macro print_num_code 0
    mov eax, [free]
@@ -670,11 +629,99 @@ start_word print_stack
    print_stack_code
 end_word print_stack, "print-stack", IMMEDIATE | COMPILE
 
+%macro print_loc_code 0
+   print_str "["
+   mov edx, [input_pos]
+   push token_buffer
+   strlen_code
+   pop ebx
+   sub edx, ebx
+   inc edx
+   push edx
+   print_num_code
+   print_str "]"
+%endmacro
+start_word print_loc
+   print_loc_code
+end_word print_loc, "print-loc", IMMEDIATE | COMPILE
+
+start_word number
+   get_token_code
+   str_to_num_code
+   pop eax
+   cmp eax, 0
+   je .invalid
+   cmp DWORD [mode], COMPILE
+   je .compile
+   jmp .done
+.compile:
+   pop eax
+   mov edx, [here]
+   mov BYTE [edx], 0x68
+   mov DWORD [edx + 1], eax
+   add edx, 5
+   mov [here], edx
+   jmp .done
+.invalid:
+   call_word print_loc
+   print_str ": Error parsing '"
+   push token_buffer
+   call_word print
+   print_str `' as a number\n`
+   ; TODO: don't crash in REPL
+   exit_code
+.done:
+end_word number, "number", IMMEDIATE | COMPILE
+
+%macro find_code 0
+   pop ebp
+   mov edx, [last]
+%%test_word:
+   cmp edx, 0
+   je %%not_found
+   mov eax, [mode]
+   and eax, [edx + T_FLAGS]
+   cmp eax, 0
+   jz %%try_next_word
+   lea ebx, [edx + T_NAME]
+   mov ecx, 0
+%%compare_names_loop:
+   mov al, [ebp + ecx]
+   cmp al, [ebx + ecx]
+   jne %%try_next_word
+   cmp al, 0
+   je %%found
+   inc ecx
+   jmp %%compare_names_loop
+%%try_next_word:
+   mov edx, [edx]
+   jmp %%test_word
+%%not_found:
+   print_loc_code
+   print_str ": Could not find word '"
+   push token_buffer
+   print_code
+   print_str "' while looking in "
+   push DWORD [mode]
+   print_mode_code
+   print_str `mode\n`
+   push 0
+   jmp %%done
+%%found:
+   push edx
+%%done:
+%endmacro
+start_word find
+   find_code
+end_word find, "find", IMMEDIATE
+
 %macro inspect_code 0
    eat_spaces_code
    get_token_code
    find_code
    pop esi
+   cmp esi, 0
+   je %%not_found
    lea eax, [esi + T_NAME]
    push esi
    push eax
@@ -715,6 +762,7 @@ end_word print_stack, "print-stack", IMMEDIATE | COMPILE
    print_str `\n`
    pop ebx
    mov dword [var_radix], ebx
+%%not_found:
 %endmacro
 start_word inspect
    inspect_code
@@ -856,6 +904,8 @@ start_word if_compiled
    get_token_code
    find_code
    pop esi
+   cmp esi, 0
+   je .not_found
    mov eax, [esi + T_CODE_LEN]
    push esi
    mov edx, [here]
@@ -868,6 +918,7 @@ start_word if_compiled
    add edx, 9
    mov [here], edx
    inline_code
+.not_found:
 end_word if_compiled, "if?", COMPILE | RUNCOMP
 
 start_word loop_compiled
@@ -877,6 +928,8 @@ start_word loop_compiled
    get_token_code
    find_code
    pop esi
+   cmp esi, 0
+   je .not_found
    mov eax, [esi + T_CODE_LEN]
    add eax, LEN_AFTER
 
@@ -885,12 +938,12 @@ start_word loop_compiled
 
    mov edx, [here]
    mov BYTE [edx], 0x58
-   mov BYTE [edx+1], 0x50
-   mov BYTE [edx+2], 0x85
-   mov BYTE [edx+3], 0xC0
-   mov BYTE [edx+4], 0x0F
-   mov BYTE [edx+5], 0x84
-   mov DWORD [edx+6], eax
+   mov BYTE [edx + 1], 0x50
+   mov BYTE [edx + 2], 0x85
+   mov BYTE [edx + 3], 0xC0
+   mov BYTE [edx + 4], 0x0F
+   mov BYTE [edx + 5], 0x84
+   mov DWORD [edx + 6], eax
    add edx, LEN_BEFORE
    mov [here], edx
    inline_code
@@ -902,6 +955,7 @@ start_word loop_compiled
    mov DWORD [edx + 1], eax
    add edx, LEN_AFTER
    mov [here], edx
+.not_found:
 end_word loop_compiled, "loop?", COMPILE | RUNCOMP
 
 start_word var
@@ -981,6 +1035,8 @@ start_word elf
    get_token_code
    find_code
    pop esi
+   cmp esi, 0
+   je .not_found
    mov eax, [esi + T_CODE_LEN]
 
    add eax, elf_size
@@ -1008,6 +1064,7 @@ start_word elf
    print_str "Wrote to '"
    print_code
    print_str `'\n`
+.not_found:
 end_word elf, "elf", IMMEDIATE
 
 global _start
@@ -1031,6 +1088,7 @@ _start:
    mov DWORD [input_buffer_pos], input_buffer
    mov DWORD [input_buffer_end], input_buffer
    mov DWORD [input_eof], 0
+   mov DWORD [input_pos], 0
 
    mov DWORD [var_radix], 10
    jmp get_next_token
@@ -1087,13 +1145,5 @@ get_next_token:
    push 0
    call_word exit
 .not_found:
-   print_str "Could not find word '"
-   push token_buffer
-   call_word print
-   print_str "' while looking in "
-   mov eax, [mode]
-   push eax
-   print_mode_code
-   print_str `mode\n`
    jmp get_next_token
 
