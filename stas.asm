@@ -15,7 +15,6 @@
 section .bss
 mode: resd 1
 var_radix: resd 1
-input_file: resd 1
 last: resd 1
 here: resd 1
 free: resd 1
@@ -24,7 +23,10 @@ token_buffer: resb 32
 name_buffer:  resb 32
 compile_area: resb 4096
 data_area: resb 1024
+repl: resb 1
 
+input_file: resd 1
+input_file_path: resd 1
 input_buffer: resb INPUT_SIZE
 input_buffer_end: resd 1
 input_buffer_pos: resd 1
@@ -90,6 +92,13 @@ section .text
 start_word exit
    exit_code
 end_word exit, "exit", IMMEDIATE | COMPILE
+
+%macro exit_if_not_repl 0
+   test BYTE [repl], 1
+   jnz %%done
+   exit_code
+%%done:
+%endmacro
 
 %macro strlen_code 0
    pop eax
@@ -158,6 +167,13 @@ start_word is_runcomp
 end_word is_runcomp, "runcomp?", IMMEDIATE | COMPILE
 
 %macro get_input_code 0
+   test BYTE [repl], 1
+   jnz %%is_repl
+%%is_file:
+   mov ebx, [input_file]
+   mov eax, INPUT_SIZE
+   jmp %%normal
+%%is_repl:
    pusha
    mov ebx, [input_file]
    mov ecx, input_buffer
@@ -630,6 +646,10 @@ start_word print_stack
 end_word print_stack, "print-stack", IMMEDIATE | COMPILE
 
 %macro print_loc_code 0
+   test BYTE [repl], 1
+   jnz %%is_repl
+   push DWORD [input_file_path]
+   print_code
    print_str "["
    mov edx, [input_pos]
    push token_buffer
@@ -639,7 +659,8 @@ end_word print_stack, "print-stack", IMMEDIATE | COMPILE
    inc edx
    push edx
    print_num_code
-   print_str "]"
+   print_str "]: "
+%%is_repl:
 %endmacro
 start_word print_loc
    print_loc_code
@@ -664,11 +685,10 @@ start_word number
    jmp .done
 .invalid:
    call_word print_loc
-   print_str ": Error parsing '"
+   print_str "Error parsing '"
    push token_buffer
    call_word print
    print_str `' as a number\n`
-   ; TODO: don't crash in REPL
    exit_code
 .done:
 end_word number, "number", IMMEDIATE | COMPILE
@@ -698,13 +718,14 @@ end_word number, "number", IMMEDIATE | COMPILE
    jmp %%test_word
 %%not_found:
    print_loc_code
-   print_str ": Could not find word '"
+   print_str "Could not find word '"
    push token_buffer
    print_code
    print_str "' while looking in "
    push DWORD [mode]
    print_mode_code
    print_str `mode\n`
+   exit_if_not_repl
    push 0
    jmp %%done
 %%found:
@@ -1072,11 +1093,46 @@ _start:
    cld
 
    mov eax, [esp]
-   cmp eax, 1
-   jne .print_usage
+   cmp eax, 2
+   jl .is_repl
+.is_file:
+   mov BYTE [repl], 0
 
-   mov DWORD [mode], IMMEDIATE
+   mov ebx, [esp + 8]
+   mov [input_file_path], ebx
+   mov ecx, 0
+   mov eax, SYS_OPEN
+   int 0x80
+
+   cmp eax, 0
+   jl .not_found
+
+   mov DWORD [input_file], eax
+
+   mov ebx, [input_file]
+   mov ecx, input_buffer
+   mov edx, INPUT_SIZE
+   mov eax, SYS_READ
+   int 0x80
+
+   mov ebx, [input_file]
+   mov eax, SYS_CLOSE
+   int 0x80
+
+   jmp run
+.not_found:
+   print_str "File '"
+   push ebx
+   call_word print
+   print_str `' not found\n`
+   call_word exit
+.is_repl:
+   mov BYTE [repl], 1
    mov DWORD [input_file], STDIN
+   jmp run
+
+run:
+   mov DWORD [mode], IMMEDIATE
    mov DWORD [here], compile_area
    mov DWORD [free], data_area
 
@@ -1092,9 +1148,6 @@ _start:
 
    mov DWORD [var_radix], 10
    jmp get_next_token
-.print_usage:
-   print_str `Usage: stas\n`
-   exit_code
 
 get_next_token:
    mov eax, [input_eof]

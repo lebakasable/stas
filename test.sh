@@ -20,7 +20,7 @@ function try {
 }
 
 function try_file {
-   actual=$(./stas < $1)
+   actual=$(./stas $1)
    if [ "$actual" = "$2" ]
    then
       printf .
